@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background-color: #F7F6F3;
+    color: #141210;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    text-align: left;
+    min-height: 100vh;
+    border: none;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: inherit;
+    margin: 0;
+    line-height: inherit;
+  }
+
+  p, blockquote {
+    margin: 0;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  img, svg {
+    display: block;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .text-display-xl {
+    font-size: clamp(48px, 7vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+  }
+
+  .text-display-l {
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+  }
+
+  .text-display-m {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  .text-display-s {
+    font-size: clamp(22px, 3vw, 32px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .label-caps {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .section-pad {
+    padding-top: 128px;
+    padding-bottom: 128px;
+  }
+
+  @media (max-width: 768px) {
+    .section-pad {
+      padding-top: 80px;
+      padding-bottom: 80px;
+    }
+  }
+}
