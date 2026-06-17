@@ -1,10 +1,62 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useId, type ReactNode } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
 const ease = [0.16, 1, 0.3, 1] as const
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// ─── Visual Utilities ─────────────────────────────────────────────────────────
+
+function easeOut(t: number) { return 1 - Math.pow(1 - t, 3) }
+
+function Grain({ opacity = 0.022 }: { opacity?: number }) {
+  const rawId = useId()
+  const id = 'g' + rawId.replace(/[^a-zA-Z0-9]/g, 'x')
+  return (
+    <svg aria-hidden="true" className="pointer-events-none absolute inset-0 w-full h-full" style={{ opacity }}>
+      <filter id={id}>
+        <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
+        <feColorMatrix type="saturate" values="0" />
+      </filter>
+      <rect width="100%" height="100%" filter={`url(#${id})`} />
+    </svg>
+  )
+}
+
+function GlowBlob({ x, y, color = '#F5A653', size = 600, opacity = 0.06, anim }: {
+  x: string; y: string; color?: string; size?: number; opacity?: number
+  anim?: { x: number[]; y: number[] }
+}) {
+  return (
+    <motion.div
+      className="absolute rounded-full pointer-events-none"
+      style={{ width: size, height: size, left: x, top: y, background: `radial-gradient(circle, ${color} 0%, transparent 70%)`, opacity, filter: 'blur(80px)' }}
+      animate={anim ? { x: anim.x, y: anim.y } : undefined}
+      transition={anim ? { duration: 18, repeat: Infinity, ease: 'linear', repeatType: 'mirror' } : undefined}
+    />
+  )
+}
+
+function AnimatedNumber({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0)
+  const ref = useRef<HTMLSpanElement>(null)
+  const visible = useInView(ref as unknown as React.RefObject<Element>, { once: true, margin: '-40px' })
+  useEffect(() => {
+    if (!visible) return
+    let start: number | null = null
+    const duration = 1600
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      setDisplay(Math.round(easeOut(progress) * value))
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    const raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [visible, value])
+  return <span ref={ref}>{display.toLocaleString()}</span>
 }
 
 // ─── Navigation ──────────────────────────────────────────────────────────────
@@ -145,7 +197,7 @@ function MiniRing({ score, size = 44, color = '#F5A653' }: { score: number; size
 
 function CardMatchBadge() {
   return (
-    <div className="bg-studio-card border border-studio-brd rounded-xl p-3.5 flex items-center gap-3" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+    <div className="rounded-xl p-3.5 flex items-center gap-3" style={{ background: 'rgba(12,11,9,0.72)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       <MiniRing score={87} size={44} />
       <div>
         <div className="label-caps text-white/25 mb-0.5">Voice Match</div>
@@ -158,7 +210,7 @@ function CardMatchBadge() {
 
 function CardBriefPreview() {
   return (
-    <div className="bg-studio-card border border-studio-brd rounded-2xl p-5 w-72" style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }}>
+    <div className="rounded-2xl p-5 w-72" style={{ background: 'rgba(12,11,9,0.78)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       <div className="flex items-center justify-between mb-4">
         <span className="label-caps text-white/30">Brief Translator</span>
         <span className="label-caps text-ember-400/70">Nike</span>
@@ -191,7 +243,7 @@ function CardBriefPreview() {
 
 function CardRiskBadge() {
   return (
-    <div className="rounded-xl px-4 py-3.5" style={{ background: 'rgba(127,29,29,0.7)', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+    <div className="rounded-xl px-4 py-3.5" style={{ background: 'rgba(127,29,29,0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' }}>
       <div className="label-caps mb-1" style={{ color: 'rgba(252,165,165,0.5)' }}>Rejection Risk</div>
       <div className="font-serif text-3xl font-light text-red-300">78%</div>
       <div className="font-sans text-[11px] mt-1" style={{ color: 'rgba(252,165,165,0.7)' }}>3 Critical · 3 High issues</div>
@@ -207,7 +259,7 @@ function CardLivingBrief() {
     return () => clearInterval(t)
   }, [])
   return (
-    <div className="bg-studio-card border border-studio-brd rounded-xl px-4 py-3.5 flex items-center gap-3" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+    <div className="rounded-xl px-4 py-3.5 flex items-center gap-3" style={{ background: 'rgba(12,11,9,0.72)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       <div className="relative shrink-0">
         <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
         <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-50" />
@@ -229,7 +281,7 @@ function CardLivingBrief() {
 
 function CardDiscovery() {
   return (
-    <div className="bg-studio-card border border-studio-brd rounded-xl px-4 py-3.5" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+    <div className="rounded-xl px-4 py-3.5" style={{ background: 'rgba(12,11,9,0.72)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
       <div className="label-caps text-white/25 mb-1.5">Brand Discovery</div>
       <div className="font-serif text-[28px] font-light text-white leading-none">12</div>
       <div className="font-sans text-[11px] text-white/35 mt-1">brands match your voice</div>
@@ -241,8 +293,11 @@ function CardDiscovery() {
 
 function HeroSection() {
   return (
-    <section className="min-h-screen bg-studio-bg relative overflow-hidden">
-      <div className="absolute top-1/3 left-1/4 w-[700px] h-[700px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(245,166,83,0.035) 0%, transparent 65%)' }} />
+    <section className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #0E0B09 0%, #0C0B09 55%, #100D0A 100%)' }}>
+      <Grain opacity={0.025} />
+      <GlowBlob x="5%" y="10%" color="#F5A653" size={900} opacity={0.05} anim={{ x: [0, 60, -40, 0], y: [0, -40, 60, 0] }} />
+      <GlowBlob x="55%" y="25%" color="#D97C28" size={700} opacity={0.038} anim={{ x: [0, -80, 40, 0], y: [0, 60, -30, 0] }} />
+      <GlowBlob x="70%" y="60%" color="#8B4B10" size={500} opacity={0.028} anim={{ x: [0, 40, -60, 0], y: [0, -50, 30, 0] }} />
 
       <div className="relative max-w-[1400px] mx-auto px-6 lg:px-10 min-h-screen grid lg:grid-cols-[5fr_6fr] gap-12 lg:gap-16 items-center pt-24 pb-20">
 
@@ -400,6 +455,210 @@ function HeroSection() {
   )
 }
 
+// ─── Dashboard Showcase ───────────────────────────────────────────────────────
+
+function DashboardShowcase() {
+  const ref = useRef(null)
+  const visible = useInView(ref, { once: true, margin: '-80px' })
+
+  return (
+    <section className="relative overflow-hidden section-pad px-6 lg:px-10" style={{ background: 'linear-gradient(180deg, #100D0A 0%, #0C0B09 40%, #0D0C0A 100%)' }}>
+      <Grain opacity={0.02} />
+      <GlowBlob x="30%" y="-10%" color="#F5A653" size={800} opacity={0.04} />
+
+      <div className="max-w-[1400px] mx-auto">
+        <div className="text-center mb-14">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={visible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, ease }}
+          >
+            <span className="label-caps text-ember-400/60">Platform Overview</span>
+          </motion.div>
+          <motion.h2
+            ref={ref}
+            initial={{ opacity: 0, y: 18 }}
+            animate={visible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.65, delay: 0.1, ease }}
+            className="font-serif font-light text-display-l text-white mt-5 max-w-[600px] mx-auto leading-tight"
+          >
+            Everything in one intelligent workspace.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={visible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.55, delay: 0.2, ease }}
+            className="font-sans text-[15px] text-white/40 mt-5 max-w-md mx-auto leading-[1.85]"
+          >
+            Voice archaeology, brief translation, creator matching, and living briefs — all connected inside a single dashboard.
+          </motion.p>
+        </div>
+
+        {/* macOS Chrome Window */}
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          animate={visible ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ duration: 0.85, delay: 0.3, ease }}
+          className="rounded-2xl overflow-hidden"
+          style={{ border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 40px 120px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)', background: '#0F0E0B' }}
+        >
+          {/* Title bar */}
+          <div className="flex items-center gap-3 px-5 h-11 border-b" style={{ background: '#141210', borderColor: '#2A2722' }}>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ background: '#FF5C5C' }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: '#F5B942' }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: '#00D084' }} />
+            </div>
+            <div className="flex-1 flex justify-center">
+              <div className="font-sans text-[12px] text-white/25 px-4 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                intent.app/dashboard
+              </div>
+            </div>
+            <div className="font-sans text-[11px] text-white/20">@sarah_runs</div>
+          </div>
+
+          <div className="flex" style={{ minHeight: 480 }}>
+            {/* Sidebar */}
+            <div className="w-48 shrink-0 border-r flex flex-col" style={{ borderColor: '#2A2722', background: '#0C0B09' }}>
+              <div className="px-4 py-4 border-b" style={{ borderColor: '#1C1A17' }}>
+                <div className="label-caps text-white/20 mb-3">Active Campaigns</div>
+                {[
+                  { brand: 'Nike', score: 87, color: '#F5A653' },
+                  { brand: 'Gymshark', score: 91, color: '#00D084' },
+                  { brand: 'Lululemon', score: 79, color: '#F5B942' },
+                ].map(b => (
+                  <div key={b.brand} className="flex items-center justify-between py-2">
+                    <span className="font-sans text-[12px] text-white/55">{b.brand}</span>
+                    <span className="font-mono text-[11px] font-medium" style={{ color: b.color }}>{b.score}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-4">
+                <div className="label-caps text-white/20 mb-2">Active Brief</div>
+                <div className="font-sans text-[12px] text-white/60 leading-relaxed">Nike Air Max '25</div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-sans text-[10px] text-emerald-400/70">LIVE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Main grid */}
+            <div className="flex-1 p-4 grid grid-cols-2 gap-3">
+              {/* Voice Archaeology tile */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={visible ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.55, ease }}
+                className="rounded-xl overflow-hidden border"
+                style={{ borderColor: '#2A2722', background: '#141210' }}
+              >
+                <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ borderColor: '#1C1A17' }}>
+                  <span className="label-caps text-ember-400/60">Voice Archaeology</span>
+                  <span className="font-sans text-[10px] text-white/25">Nike · 847 posts</span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {[
+                    { says: '"authentic"', means: 'Struggle → breakthrough arc', hot: true },
+                    { says: '"premium"', means: 'Peak achievement moment', hot: false },
+                  ].map(p => (
+                    <div key={p.says} className={`rounded-lg p-2.5 grid grid-cols-[auto_12px_1fr] gap-2 items-center ${p.hot ? 'bg-ember-800/20' : 'bg-studio-ele/30'}`}>
+                      <span className="font-mono text-[10px] text-white/40">{p.says}</span>
+                      <span className="text-white/15 text-[10px]">→</span>
+                      <span className="font-sans text-[10px] text-white/60">{p.means}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Brief Translator tile */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={visible ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.65, ease }}
+                className="rounded-xl overflow-hidden border"
+                style={{ borderColor: '#2A2722', background: '#141210' }}
+              >
+                <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ borderColor: '#1C1A17' }}>
+                  <span className="label-caps text-emerald-400/60">Brief Translator</span>
+                  <span className="font-sans text-[10px]" style={{ color: '#00D084' }}>87% match</span>
+                </div>
+                <div className="p-3 space-y-1.5">
+                  {[
+                    { ok: true, text: 'Open with physical struggle' },
+                    { ok: true, text: 'Product at peak achievement' },
+                    { ok: false, text: 'Avoid comfort language' },
+                  ].map(item => (
+                    <div key={item.text} className="flex items-center gap-2">
+                      <span className={`text-[10px] shrink-0 font-semibold ${item.ok ? 'text-emerald-400' : 'text-red-400'}`}>{item.ok ? '✓' : '✗'}</span>
+                      <span className="font-sans text-[10px] text-white/50">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Creator Match tile */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={visible ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.75, ease }}
+                className="rounded-xl overflow-hidden border"
+                style={{ borderColor: '#2A2722', background: '#141210' }}
+              >
+                <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ borderColor: '#1C1A17' }}>
+                  <span className="label-caps text-white/30">Creator Match</span>
+                  <span className="font-sans text-[10px] text-white/25">@sarah_runs</span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {[
+                    { brand: 'Gymshark', score: 91, color: '#00D084' },
+                    { brand: 'Nike', score: 87, color: '#F5A653' },
+                    { brand: 'Lululemon', score: 79, color: '#F5B942' },
+                  ].map(b => (
+                    <div key={b.brand} className="flex items-center gap-2">
+                      <span className="font-sans text-[10px] text-white/40 w-16 shrink-0">{b.brand}</span>
+                      <div className="flex-1 h-1 rounded-full" style={{ background: '#1C1A17' }}>
+                        <div className="h-full rounded-full" style={{ width: `${b.score}%`, background: b.color, opacity: 0.7 }} />
+                      </div>
+                      <span className="font-mono text-[10px] text-white/40 w-7 text-right">{b.score}%</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Living Brief tile */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={visible ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.85, ease }}
+                className="rounded-xl overflow-hidden border"
+                style={{ borderColor: '#2A2722', background: '#141210' }}
+              >
+                <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ borderColor: '#1C1A17' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="label-caps text-emerald-400/70">Living Brief</span>
+                  <span className="font-sans text-[10px] text-white/20 ml-auto">Nike Air Max '25</span>
+                </div>
+                <div className="p-3 space-y-1.5">
+                  <div className="rounded-lg p-2 bg-studio-ele/20">
+                    <span className="font-sans text-[10px] text-white/50">↗ Outdoor content +34% CTR</span>
+                  </div>
+                  <div className="rounded-lg p-2 bg-amber-950/20">
+                    <span className="font-sans text-[10px]" style={{ color: '#F5B94299' }}>⚡ Less polish, more raw</span>
+                  </div>
+                  <div className="rounded-lg p-2 bg-red-950/20">
+                    <span className="font-sans text-[10px] text-red-400/60">✗ Comfort language = 0%</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
 // ─── Shared Section Primitives ────────────────────────────────────────────────
 
 function InView({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -441,9 +700,10 @@ function ArchaeologyVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-studio-brd"
-      style={{ background: '#0F0E0B' }}
+      style={{ background: '#0F0E0B', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
     >
       {/* Header bar */}
       <div className="px-6 py-4 border-b border-studio-brd flex items-center justify-between">
@@ -515,8 +775,9 @@ function ArchaeologyVisual() {
 
 function ArchaeologySection({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void }) {
   return (
-    <section id="archaeology" className="scroll-mt-16 bg-studio-bg section-pad px-6 lg:px-10">
-      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+    <section id="archaeology" className="scroll-mt-16 section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0C0B09 0%, #0E0C09 100%)' }}>
+      <Grain opacity={0.02} />
+      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center relative">
 
         <div>
           <InView>
@@ -577,6 +838,7 @@ function TranslatorVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
     >
       {/* Brief input */}
@@ -717,9 +979,10 @@ function MatchStudioVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-studio-brd"
-      style={{ background: '#0F0E0B' }}
+      style={{ background: '#0F0E0B', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
     >
       {/* Creator header */}
       <div className="px-6 py-5 border-b border-studio-brd flex items-center gap-4">
@@ -790,10 +1053,12 @@ function MatchStudioVisual() {
 
 function MatchStudioSection() {
   return (
-    <section id="match" className="scroll-mt-16 bg-studio-card section-pad px-6 lg:px-10">
-      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-        <div>
+    <section id="match" className="scroll-mt-16 section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #09090F 0%, #0B0A12 100%)' }}>
+      <Grain opacity={0.02} />
+      <GlowBlob x="60%" y="20%" color="#B794F6" size={600} opacity={0.04} />
+      <div className="max-w-[1400px] mx-auto relative">
+        {/* Centered header */}
+        <div className="text-center max-w-2xl mx-auto mb-14">
           <InView>
             <SectionNumber n="03 — Creator Match Studio" />
           </InView>
@@ -803,31 +1068,30 @@ function MatchStudioSection() {
             </h2>
           </InView>
           <InView className="mt-6">
-            <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
+            <p className="font-sans text-[15px] text-white/45 leading-[1.85]">
               Not follower count. Not niche. Voice match. Intent compares your actual content fingerprint against brand behavioral profiles to produce an alignment score that predicts approval rates.
             </p>
           </InView>
-          <InView className="mt-7">
-            <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
-              A 91% match means your natural content style already performs inside a brand's approved patterns. You're not adapting — you're amplifying.
-            </p>
-          </InView>
-          <InView className="mt-10 space-y-4">
-            {[
-              'Voice fingerprint across 200+ content signals',
-              'Ranked matches from 847 analyzed brands',
-              'Predicted approval rate per brand',
-            ].map(feat => (
-              <div key={feat} className="flex items-start gap-3">
-                <span className="text-ember-400 mt-0.5 shrink-0">◈</span>
-                <span className="font-sans text-[14px] text-white/55">{feat}</span>
-              </div>
-            ))}
-          </InView>
         </div>
 
-        <InView>
+        {/* Full-width visual */}
+        <InView className="max-w-2xl mx-auto">
           <MatchStudioVisual />
+        </InView>
+
+        {/* 3-col feature grid */}
+        <InView className="mt-12 grid md:grid-cols-3 gap-6">
+          {[
+            { icon: '◈', title: 'Voice fingerprint', desc: 'Analyzed across 200+ content signals from your existing work.' },
+            { icon: '↗', title: 'Ranked matches', desc: 'Sorted by predicted approval rate from 847 analyzed brands.' },
+            { icon: '✓', title: 'Predicted outcomes', desc: 'Know your approval probability before you pitch a single brand.' },
+          ].map(f => (
+            <div key={f.title} className="rounded-2xl p-6 border border-studio-brd/60" style={{ background: 'rgba(255,255,255,0.025)' }}>
+              <span className="text-ember-400 text-lg">{f.icon}</span>
+              <div className="font-sans text-[14px] font-semibold text-white mt-3">{f.title}</div>
+              <div className="font-sans text-[13px] text-white/40 mt-2 leading-relaxed">{f.desc}</div>
+            </div>
+          ))}
         </InView>
       </div>
     </section>
@@ -852,9 +1116,10 @@ function RejectionVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-studio-brd"
-      style={{ background: '#0F0E0B' }}
+      style={{ background: '#0F0E0B', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
     >
       {/* Header */}
       <div className="px-5 py-3.5 border-b border-studio-brd flex items-center justify-between">
@@ -1017,9 +1282,10 @@ function LivingBriefVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-studio-brd"
-      style={{ background: '#0F0E0B' }}
+      style={{ background: '#0F0E0B', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
     >
       {/* Live header */}
       <div className="px-6 py-4 border-b border-studio-brd flex items-center justify-between">
@@ -1082,43 +1348,49 @@ function LivingBriefVisual() {
 
 function LivingBriefSection() {
   return (
-    <section id="living" className="scroll-mt-16 bg-studio-bg section-pad px-6 lg:px-10">
-      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+    <section id="living" className="scroll-mt-16 section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #09100C 0%, #0B0F0A 100%)' }}>
+      <Grain opacity={0.02} />
+      <GlowBlob x="20%" y="30%" color="#00D084" size={600} opacity={0.03} />
+      <div className="max-w-[1400px] mx-auto relative">
+        {/* Top row: 2-col copy + features */}
+        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start mb-14">
+          <div>
+            <InView>
+              <SectionNumber n="05 — Living Brief" />
+            </InView>
+            <InView className="mt-5">
+              <h2 className="font-serif font-light text-display-l text-white leading-tight">
+                Briefs that breathe with the campaign.
+              </h2>
+            </InView>
+            <InView className="mt-6">
+              <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
+                Campaign requirements don't stay still. Performance data changes what brands want mid-flight. The Living Brief updates in real time — so your second video benefits from signals your first video generated.
+              </p>
+            </InView>
+            <InView className="mt-7">
+              <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
+                You see exactly what changed, why it changed, and how to adapt your next piece of content before you've even started filming.
+              </p>
+            </InView>
+          </div>
 
-        <div>
-          <InView>
-            <SectionNumber n="05 — Living Brief" />
-          </InView>
-          <InView className="mt-5">
-            <h2 className="font-serif font-light text-display-l text-white leading-tight">
-              Briefs that breathe with the campaign.
-            </h2>
-          </InView>
-          <InView className="mt-6">
-            <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
-              Campaign requirements don't stay still. Performance data changes what brands want mid-flight. The Living Brief updates in real time — so your second video benefits from signals your first video generated.
-            </p>
-          </InView>
-          <InView className="mt-7">
-            <p className="font-sans text-[15px] text-white/45 leading-[1.85] max-w-sm">
-              You see exactly what changed, why it changed, and how to adapt your next piece of content before you've even started filming.
-            </p>
-          </InView>
-          <InView className="mt-10 space-y-4">
+          <InView className="lg:pt-14 space-y-4">
             {[
               'Real-time campaign performance signals',
               'Automatic requirement updates from brand data',
               'Creator notification on every brief change',
               'History of all updates with reasoning',
             ].map(feat => (
-              <div key={feat} className="flex items-start gap-3">
+              <div key={feat} className="flex items-start gap-3 rounded-xl px-4 py-3.5 border border-studio-brd/40" style={{ background: 'rgba(255,255,255,0.02)' }}>
                 <span className="text-emerald-400 mt-0.5 shrink-0 text-sm">↗</span>
-                <span className="font-sans text-[14px] text-white/50">{feat}</span>
+                <span className="font-sans text-[14px] text-white/55">{feat}</span>
               </div>
             ))}
           </InView>
         </div>
 
+        {/* Full-width visual below */}
         <InView>
           <LivingBriefVisual />
         </InView>
@@ -1145,6 +1417,7 @@ function PixelPactVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-border-subtle bg-surface-1 shadow-card-xl"
     >
@@ -1295,9 +1568,10 @@ function BrandDiscoveryVisual() {
       ref={ref}
       initial={{ opacity: 0, y: 32 }}
       animate={visible ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.8, ease }}
       className="rounded-2xl overflow-hidden border border-studio-brd"
-      style={{ background: '#0F0E0B' }}
+      style={{ background: '#0F0E0B', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
     >
       {/* Header */}
       <div className="px-6 py-4 border-b border-studio-brd flex items-center justify-between">
@@ -1373,8 +1647,10 @@ function BrandDiscoveryVisual() {
 
 function BrandDiscoverySection() {
   return (
-    <section id="discovery" className="scroll-mt-16 bg-studio-card section-pad px-6 lg:px-10">
-      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+    <section id="discovery" className="scroll-mt-16 section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0A0810 0%, #0C0912 100%)' }}>
+      <Grain opacity={0.02} />
+      <GlowBlob x="70%" y="40%" color="#B794F6" size={700} opacity={0.04} />
+      <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-center relative">
 
         <div>
           <InView>
@@ -1427,13 +1703,41 @@ function FinalCTA({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translat
   const visible = useInView(ref, { once: true, margin: '-80px' })
 
   return (
-    <section className="bg-studio-bg section-pad px-6 lg:px-10">
-      <div className="max-w-[1400px] mx-auto text-center">
+    <section className="section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0E0B08 0%, #160F06 100%)' }}>
+      <Grain opacity={0.025} />
+      <GlowBlob x="25%" y="20%" color="#F5A653" size={900} opacity={0.065} anim={{ x: [0, 60, -30, 0], y: [0, -40, 50, 0] }} />
+      <GlowBlob x="65%" y="50%" color="#D97C28" size={600} opacity={0.04} anim={{ x: [0, -50, 30, 0], y: [0, 40, -40, 0] }} />
+
+      <div className="max-w-[1400px] mx-auto relative">
+        {/* Animated stats row */}
         <motion.div
           ref={ref}
+          initial={{ opacity: 0, y: 16 }}
+          animate={visible ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20 pb-16 border-b border-studio-brd/40"
+        >
+          {[
+            { value: 2400, suffix: '+', label: 'Creators in beta' },
+            { value: 847, suffix: '', label: 'Brands analyzed' },
+            { value: 91, suffix: '%', label: 'First-pass approval rate' },
+            { value: 4, suffix: '×', label: 'Fewer revision cycles' },
+          ].map(s => (
+            <div key={s.label} className="text-center">
+              <div className="font-serif font-light text-display-m text-white leading-none">
+                <AnimatedNumber value={s.value} />{s.suffix}
+              </div>
+              <div className="label-caps text-white/25 mt-2">{s.label}</div>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Main CTA */}
+        <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={visible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease }}
+          transition={{ duration: 0.7, delay: 0.15, ease }}
+          className="text-center"
         >
           <span className="label-caps text-ember-400/60">Intent is in private beta</span>
           <h2 className="font-serif font-light text-display-l text-white mt-5 max-w-[640px] mx-auto leading-tight">
@@ -1443,9 +1747,15 @@ function FinalCTA({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translat
             Join 2,400 creators who've cut revision cycles by 4× and increased first-pass approval rates to 91%.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <button className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-8 py-3.5 rounded-md transition-colors duration-200">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+              className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-8 py-3.5 rounded-md transition-colors duration-200"
+              style={{ boxShadow: '0 0 40px rgba(217,124,40,0.35)' }}
+            >
               Request early access →
-            </button>
+            </motion.button>
             <button
               onClick={() => onNavigate('archaeology')}
               className="font-sans text-sm font-medium text-white/35 hover:text-white/70 transition-colors duration-200"
@@ -1454,6 +1764,19 @@ function FinalCTA({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translat
             </button>
           </div>
           <p className="font-sans text-[11px] text-white/20 mt-6">No credit card. No pitch deck. Just your content URL.</p>
+
+          {/* Trust indicators */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={visible ? { opacity: 1 } : {}}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="mt-14 flex flex-wrap items-center justify-center gap-8"
+          >
+            {['Nike', 'Gymshark', 'Lululemon', 'Under Armour', 'Alo Yoga', 'Tracksmith'].map(brand => (
+              <span key={brand} className="font-serif text-[13px] text-white/15 tracking-wide">{brand}</span>
+            ))}
+          </motion.div>
+          <div className="label-caps text-white/10 mt-3">Brands analyzed by Intent</div>
         </motion.div>
       </div>
     </section>
@@ -1494,6 +1817,7 @@ export default function LandingPage({
     <div className="bg-studio-bg">
       <SiteNav />
       <HeroSection />
+      <DashboardShowcase />
       <ArchaeologySection onNavigate={onNavigate} />
       <TranslatorSection onNavigate={onNavigate} />
       <MatchStudioSection />
