@@ -13,7 +13,7 @@ const avoidItems = ['Price mentions', 'Discount language', '"Comfortable" as a w
 
 const originalBrief = `"We want authentic premium content that aligns with our brand values and drives meaningful engagement with target audiences while maintaining brand authenticity."`
 
-export default function FeatureTranslator() {
+export default function FeatureTranslator({ onTry }: { onTry?: () => void }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-80px' })
 
@@ -127,10 +127,13 @@ export default function FeatureTranslator() {
             </ScrollReveal>
 
             <ScrollReveal delay={0.26} className="mt-10">
-              <a href="#" className="inline-flex items-center gap-1.5 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400">
+              <button
+                onClick={onTry}
+                className="inline-flex items-center gap-1.5 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400"
+              >
                 Try the translator
                 <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
-              </a>
+              </button>
             </ScrollReveal>
           </div>
         </div>

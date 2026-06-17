@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ function BrandHero() {
 // ─── Left Navigation ──────────────────────────────────────────────────────────
 
 function LeftNav({ activeSection }: { activeSection: string }) {
-  const [activeRelated, setActiveRelated] = useState('Nike')
+  const [_activeRelated, setActiveRelated] = useState('Nike')
 
   return (
     <aside className="sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pb-12 pr-8 border-r border-border-subtle">

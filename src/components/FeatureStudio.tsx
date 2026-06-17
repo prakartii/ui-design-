@@ -29,7 +29,7 @@ const scriptLines = [
   },
 ]
 
-export default function FeatureStudio() {
+export default function FeatureStudio({ onTry }: { onTry?: () => void }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-80px' })
 
@@ -76,10 +76,10 @@ export default function FeatureStudio() {
           </ScrollReveal>
 
           <ScrollReveal delay={0.32} className="mt-10">
-            <a href="#" className="inline-flex items-center gap-1.5 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400">
+            <button onClick={onTry} className="inline-flex items-center gap-1.5 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400">
               Review your content
               <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
-            </a>
+            </button>
           </ScrollReveal>
         </div>
 
