@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useId, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -74,6 +75,7 @@ const NAV_ITEMS = [
 function SiteNav() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 48)
@@ -112,10 +114,16 @@ function SiteNav() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <button className="font-sans text-[13px] font-medium text-white/35 hover:text-white/70 transition-colors duration-200">
+            <button
+              onClick={() => navigate('/login')}
+              className="font-sans text-[13px] font-medium text-white/35 hover:text-white/70 transition-colors duration-200"
+            >
               Sign in
             </button>
-            <button className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-5 py-2.5 rounded-md transition-colors duration-200">
+            <button
+              onClick={() => navigate('/signup')}
+              className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-5 py-2.5 rounded-md transition-colors duration-200"
+            >
               Get early access →
             </button>
           </div>
@@ -157,6 +165,7 @@ function SiteNav() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.32, ease }}
+              onClick={() => { navigate('/signup'); setMobileOpen(false) }}
               className="mt-4 font-sans text-sm font-medium bg-ember-600 text-white px-8 py-3 rounded-md"
             >
               Get early access →
@@ -292,6 +301,7 @@ function CardDiscovery() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function HeroSection() {
+  const navigate = useNavigate()
   return (
     <section className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #0E0B09 0%, #0C0B09 55%, #100D0A 100%)' }}>
       <Grain opacity={0.025} />
@@ -341,7 +351,10 @@ function HeroSection() {
             transition={{ duration: 0.55, delay: 0.82, ease }}
             className="mt-10 flex flex-wrap items-center gap-4"
           >
-            <button className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-7 py-3 rounded-md transition-colors duration-200">
+            <button
+              onClick={() => navigate('/signup')}
+              className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-7 py-3 rounded-md transition-colors duration-200"
+            >
               Start free →
             </button>
             <button
@@ -773,7 +786,8 @@ function ArchaeologyVisual() {
   )
 }
 
-function ArchaeologySection({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void }) {
+function ArchaeologySection() {
+  const navigate = useNavigate()
   return (
     <section id="archaeology" className="scroll-mt-16 section-pad px-6 lg:px-10 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0C0B09 0%, #0E0C09 100%)' }}>
       <Grain opacity={0.02} />
@@ -807,7 +821,7 @@ function ArchaeologySection({ onNavigate }: { onNavigate: (dest: 'archaeology' |
           </InView>
           <InView className="mt-10">
             <button
-              onClick={() => onNavigate('archaeology')}
+              onClick={() => navigate('/creator/voice-archaeology')}
               className="inline-flex items-center gap-2 font-sans text-sm font-medium text-white/60 hover:text-white transition-colors duration-200 group border-b border-white/15 pb-0.5 hover:border-white/40"
             >
               Explore voice archaeology
@@ -907,7 +921,8 @@ function TranslatorVisual() {
   )
 }
 
-function TranslatorSection({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void }) {
+function TranslatorSection() {
+  const navigate = useNavigate()
   return (
     <section id="translator" className="scroll-mt-16 bg-surface-0 section-pad px-6 lg:px-10">
       <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
@@ -948,7 +963,7 @@ function TranslatorSection({ onNavigate }: { onNavigate: (dest: 'archaeology' | 
           </InView>
           <InView className="mt-10">
             <button
-              onClick={() => onNavigate('translator')}
+              onClick={() => navigate('/creator/brief-translator')}
               className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400"
             >
               Try the translator
@@ -1209,7 +1224,8 @@ function RejectionVisual() {
   )
 }
 
-function RejectionSection({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void }) {
+function RejectionSection() {
+  const navigate = useNavigate()
   return (
     <section id="rejection" className="scroll-mt-16 bg-surface-0 section-pad px-6 lg:px-10">
       <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
@@ -1252,7 +1268,7 @@ function RejectionSection({ onNavigate }: { onNavigate: (dest: 'archaeology' | '
           </InView>
           <InView className="mt-10">
             <button
-              onClick={() => onNavigate('studio')}
+              onClick={() => navigate('/creator/rejection-prevention')}
               className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink-primary hover:text-ember-600 transition-colors duration-200 group border-b border-ink-primary/20 pb-0.5 hover:border-ember-400"
             >
               Review your content
@@ -1698,7 +1714,8 @@ function BrandDiscoverySection() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function FinalCTA({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void }) {
+function FinalCTA() {
+  const navigate = useNavigate()
   const ref = useRef(null)
   const visible = useInView(ref, { once: true, margin: '-80px' })
 
@@ -1751,13 +1768,14 @@ function FinalCTA({ onNavigate }: { onNavigate: (dest: 'archaeology' | 'translat
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.15 }}
+              onClick={() => navigate('/signup')}
               className="font-sans text-sm font-medium bg-ember-600 hover:bg-ember-800 text-white px-8 py-3.5 rounded-md transition-colors duration-200"
               style={{ boxShadow: '0 0 40px rgba(217,124,40,0.35)' }}
             >
               Request early access →
             </motion.button>
             <button
-              onClick={() => onNavigate('archaeology')}
+              onClick={() => navigate('/creator/voice-archaeology')}
               className="font-sans text-sm font-medium text-white/35 hover:text-white/70 transition-colors duration-200"
             >
               Explore Voice Archaeology first
@@ -1808,24 +1826,20 @@ function SiteFooter() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LandingPage({
-  onNavigate,
-}: {
-  onNavigate: (dest: 'archaeology' | 'translator' | 'studio') => void
-}) {
+export default function LandingPage() {
   return (
     <div className="bg-studio-bg">
       <SiteNav />
       <HeroSection />
       <DashboardShowcase />
-      <ArchaeologySection onNavigate={onNavigate} />
-      <TranslatorSection onNavigate={onNavigate} />
+      <ArchaeologySection />
+      <TranslatorSection />
       <MatchStudioSection />
-      <RejectionSection onNavigate={onNavigate} />
+      <RejectionSection />
       <LivingBriefSection />
       <PixelPactSection />
       <BrandDiscoverySection />
-      <FinalCTA onNavigate={onNavigate} />
+      <FinalCTA />
       <SiteFooter />
     </div>
   )
