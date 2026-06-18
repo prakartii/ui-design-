@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
+import CommandPalette from '../components/CommandPalette'
+import CopilotPanel from '../components/CopilotPanel'
 
 const CREATOR_NAV = [
   { path: '/creator/dashboard', label: 'Dashboard', icon: '◈' },
@@ -25,6 +27,22 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  const openPalette = useCallback(() => setPaletteOpen(true), [])
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
+
+  // CMD+K / CTRL+K global shortcut
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const navItems = user?.role === 'creator' ? CREATOR_NAV : BRAND_NAV
   const initial = user?.name?.[0]?.toUpperCase() ?? '?'
@@ -165,6 +183,22 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* CMD+K trigger button */}
+            <button
+              onClick={openPalette}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-studio-brd text-white/30 hover:text-white/55 hover:border-studio-ele transition-all duration-150"
+              style={{ background: '#141210' }}
+            >
+              <span className="font-sans text-[11px]">Search…</span>
+              <div className="flex items-center gap-1">
+                <kbd className="font-mono text-[9px] text-white/20 px-1 py-0.5 rounded" style={{ border: '1px solid rgba(42,39,34,0.5)' }}>
+                  ⌘
+                </kbd>
+                <kbd className="font-mono text-[9px] text-white/20 px-1 py-0.5 rounded" style={{ border: '1px solid rgba(42,39,34,0.5)' }}>
+                  K
+                </kbd>
+              </div>
+            </button>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-sans text-[11px] text-white/25 hidden sm:block">
@@ -179,6 +213,12 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Global command palette */}
+      <CommandPalette isOpen={paletteOpen} onClose={closePalette} />
+
+      {/* AI Copilot floating panel */}
+      <CopilotPanel />
     </div>
   )
 }

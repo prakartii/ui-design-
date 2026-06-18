@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { CreatorStoreProvider } from './context/CreatorStoreContext'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 
@@ -28,6 +29,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <CreatorStoreProvider>
         <Routes>
           {/* ── Public ─────────────────────────────────────────── */}
           <Route path="/" element={<LandingPage />} />
@@ -73,6 +75,7 @@ export default function App() {
           {/* ── Fallback ────────────────────────────────────────── */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </CreatorStoreProvider>
       </AuthProvider>
     </BrowserRouter>
   )

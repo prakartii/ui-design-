@@ -1,9 +1,11 @@
+// Supabase is temporarily disabled. All data uses localStorage.
+// To restore: uncomment the supabase block and remove the mock block.
+
+/*
 import { supabase } from '../lib/supabase'
 import type { MatchRow, BrandRow, CreatorRow } from '../types/database'
 
-export async function getMatchesByCreator(
-  creatorId: string
-): Promise<(MatchRow & { brand: BrandRow })[]> {
+export async function getMatchesByCreator(creatorId: string): Promise<(MatchRow & { brand: BrandRow })[]> {
   const { data, error } = await supabase
     .from('creator_brand_matches')
     .select('*, brand:brands(*)')
@@ -13,9 +15,7 @@ export async function getMatchesByCreator(
   return (data as unknown as (MatchRow & { brand: BrandRow })[]) ?? []
 }
 
-export async function getMatchesByBrand(
-  brandId: string
-): Promise<(MatchRow & { creator: CreatorRow })[]> {
+export async function getMatchesByBrand(brandId: string): Promise<(MatchRow & { creator: CreatorRow })[]> {
   const { data, error } = await supabase
     .from('creator_brand_matches')
     .select('*, creator:creators(*)')
@@ -32,4 +32,23 @@ export async function getMatchStats(creatorId: string) {
     .eq('creator_id', creatorId)
   if (error) throw error
   return { total: count ?? 0 }
+}
+*/
+
+import type { MatchRow, BrandRow, CreatorRow } from '../types/database'
+
+export async function getMatchesByCreator(
+  _creatorId: string
+): Promise<(MatchRow & { brand: BrandRow })[]> {
+  return []
+}
+
+export async function getMatchesByBrand(
+  _brandId: string
+): Promise<(MatchRow & { creator: CreatorRow })[]> {
+  return []
+}
+
+export async function getMatchStats(_creatorId: string) {
+  return { total: 0 }
 }

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  BRAND_PROFILES,
   LOADING_STEPS,
-  analyzeBrand,
+  analyzeBrandWithAI,
   loadHistory,
   saveToHistory,
   copyAnalysis,
@@ -428,10 +427,45 @@ function EmptyState() {
     >
       <div className="font-mono text-[32px] text-white/8 mb-4">◉</div>
       <div className="font-sans text-[14px] font-medium text-white/30 mb-2">
-        Select a brand to begin
+        Enter brand details to begin
       </div>
       <div className="font-sans text-[12px] text-white/20 max-w-xs leading-relaxed">
-        Choose any brand from the list, then click "Analyze Brand DNA" to extract its voice patterns.
+        Fill in the brand name and industry, then click "Analyze Brand DNA" to extract its voice patterns using AI.
+      </div>
+    </motion.div>
+  )
+}
+
+// ── Error state ────────────────────────────────────────────────
+
+function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.35, ease }}
+      className="rounded-2xl overflow-hidden border border-red-900/40"
+      style={{ background: '#0F0E0B' }}
+    >
+      <div className="px-6 py-4 border-b border-red-900/30 flex items-center gap-3">
+        <div className="w-6 h-6 rounded bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+          <span className="text-[9px] text-red-400">✗</span>
+        </div>
+        <span className="label-caps text-red-400/60">Analysis Failed</span>
+      </div>
+
+      <div className="p-8 flex flex-col items-center text-center">
+        <p className="font-sans text-[13px] text-white/50 leading-relaxed max-w-sm mb-6">
+          {message}
+        </p>
+        <button
+          onClick={onRetry}
+          className="rounded-xl px-5 py-2.5 font-sans text-[13px] font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #D97C28 0%, #A8561A 100%)' }}
+        >
+          Retry Analysis →
+        </button>
       </div>
     </motion.div>
   )
@@ -440,69 +474,69 @@ function EmptyState() {
 // ── Main page ──────────────────────────────────────────────────
 
 export default function VoiceArchaeologyPage() {
-  const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [brandName, setBrandName] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [description, setDescription] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [analysis, setAnalysis] = useState<BrandAnalysis | null>(null)
   const [history, setHistory] = useState<BrandAnalysis[]>(() => loadHistory())
   const [showHistory, setShowHistory] = useState(false)
-  const analyzeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const totalPosts = BRAND_PROFILES.reduce((a, b) => a + b.posts, 0)
-
-  const filteredBrands = BRAND_PROFILES.filter(
-    (b) =>
-      b.name.toLowerCase().includes(query.toLowerCase()) ||
-      b.category.toLowerCase().includes(query.toLowerCase()),
-  )
-
-  function selectBrand(id: string) {
-    if (analyzing) return
-    setSelectedId(id)
-    setAnalysis(null)
-  }
+  const canAnalyze = brandName.trim().length > 0 && industry.trim().length > 0
 
   function openFromHistory(a: BrandAnalysis) {
-    setSelectedId(a.brandId)
     setAnalysis(a)
+    setBrandName(a.brandName)
+    setIndustry(a.brandCategory)
+    setError(null)
     setShowHistory(false)
   }
 
   async function runAnalysis() {
-    if (!selectedId || analyzing) return
+    if (!canAnalyze || analyzing) return
 
     setAnalyzing(true)
     setLoadingStep(0)
     setAnalysis(null)
+    setError(null)
 
-    // Step through loading messages
-    const stepDuration = 600
-    for (let i = 1; i < LOADING_STEPS.length; i++) {
-      await new Promise<void>((resolve) => {
-        analyzeTimerRef.current = setTimeout(() => { setLoadingStep(i); resolve() }, stepDuration)
-      })
+    // Advance loading steps every 1.4 s while the API call runs in parallel
+    let step = 0
+    stepIntervalRef.current = setInterval(() => {
+      step = Math.min(step + 1, LOADING_STEPS.length - 1)
+      setLoadingStep(step)
+    }, 1400)
+
+    try {
+      const result = await analyzeBrandWithAI(
+        brandName.trim(),
+        industry.trim(),
+        description.trim() || undefined,
+      )
+      const updated = saveToHistory(result)
+      setHistory(updated)
+      setAnalysis(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.')
+    } finally {
+      if (stepIntervalRef.current) clearInterval(stepIntervalRef.current)
+      setAnalyzing(false)
     }
-
-    // Final pause before showing result
-    await new Promise<void>((resolve) => {
-      analyzeTimerRef.current = setTimeout(resolve, 500)
-    })
-
-    const result = analyzeBrand(selectedId)
-    const updated = saveToHistory(result)
-    setHistory(updated)
-    setAnalysis(result)
-    setAnalyzing(false)
   }
 
   useEffect(() => {
     return () => {
-      if (analyzeTimerRef.current) clearTimeout(analyzeTimerRef.current)
+      if (stepIntervalRef.current) clearInterval(stepIntervalRef.current)
     }
   }, [])
 
-  const selectedProfile = BRAND_PROFILES.find((b) => b.id === selectedId)
+  const inputClass =
+    'w-full px-3.5 py-2.5 rounded-xl border border-studio-brd font-sans text-[13px] text-white/70 placeholder-white/20 focus:outline-none focus:border-studio-ele transition-colors duration-150'
+  const inputStyle = { background: '#141210' }
+  const labelClass = 'label-caps text-white/30 mb-1.5 block'
 
   return (
     <div className="p-6 lg:p-8 max-w-[1100px] mx-auto">
@@ -518,106 +552,66 @@ export default function VoiceArchaeologyPage() {
           Decode the DNA of any brand.
         </h1>
         <p className="font-sans text-[14px] text-white/35 mt-2 max-w-md">
-          Behavioral patterns extracted from what got approved — and what got rejected — across{' '}
-          {totalPosts.toLocaleString()} analyzed posts.
+          AI-powered analysis of what brands actually reward — and what they reject — extracted
+          from thousands of creator campaigns.
         </p>
       </motion.div>
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        {/* ── Left: Brand selector ── */}
+        {/* ── Left: Brand input form ── */}
         <motion.div
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.05, ease }}
         >
-          {/* Search input */}
-          <div className="relative mb-3">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 text-sm pointer-events-none select-none">
-              ⌕
-            </span>
+          {/* Brand Name */}
+          <div className="mb-3">
+            <label className={labelClass}>Brand Name</label>
             <input
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search brands…"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-studio-brd font-sans text-[13px] text-white/70 placeholder-white/20 focus:outline-none focus:border-studio-ele transition-colors duration-150"
-              style={{ background: '#141210' }}
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              placeholder="e.g. Nike"
+              disabled={analyzing}
+              className={inputClass}
+              style={inputStyle}
             />
           </div>
 
-          <div className="label-caps text-white/25 mb-2">
-            {query ? `${filteredBrands.length} result${filteredBrands.length !== 1 ? 's' : ''}` : 'Select Brand'}
+          {/* Industry */}
+          <div className="mb-3">
+            <label className={labelClass}>Industry</label>
+            <input
+              type="text"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              placeholder="e.g. Athletic Apparel"
+              disabled={analyzing}
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
 
-          {/* Brand list */}
-          <div className="space-y-2 mb-4">
-            <AnimatePresence mode="popLayout">
-              {filteredBrands.length === 0 ? (
-                <motion.div
-                  key="no-results"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="rounded-xl p-4 border border-dashed border-studio-brd/40 text-center"
-                  style={{ background: '#141210' }}
-                >
-                  <span className="font-sans text-[11px] text-white/20">No brands match</span>
-                </motion.div>
-              ) : (
-                filteredBrands.map((b) => {
-                  const isSelected = selectedId === b.id
-                  const inHistory = history.some((h) => h.brandId === b.id)
-                  return (
-                    <motion.button
-                      key={b.id}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25, ease }}
-                      onClick={() => selectBrand(b.id)}
-                      disabled={analyzing}
-                      className={`w-full text-left rounded-xl p-4 border transition-all duration-150 disabled:opacity-50 ${
-                        isSelected
-                          ? 'border-ember-600/40 text-white'
-                          : 'border-studio-brd text-white/50 hover:text-white/70 hover:border-studio-ele'
-                      }`}
-                      style={{ background: isSelected ? 'rgba(217,124,40,0.08)' : '#141210' }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-sans text-[13px] font-semibold truncate">{b.name}</span>
-                            {inHistory && (
-                              <span
-                                className="label-caps shrink-0"
-                                style={{ color: '#F5A653', fontSize: 8, opacity: 0.6 }}
-                              >
-                                analyzed
-                              </span>
-                            )}
-                          </div>
-                          <div className="font-sans text-[11px] text-white/30 mt-0.5 truncate">
-                            {b.category}
-                          </div>
-                        </div>
-                        {isSelected && !analyzing && analysis?.brandId === b.id && (
-                          <MiniRing score={analysis.brandScore} size={34} />
-                        )}
-                      </div>
-                      <div className="font-sans text-[10px] text-white/20 mt-2">
-                        {b.posts.toLocaleString()} posts analyzed
-                      </div>
-                    </motion.button>
-                  )
-                })
-              )}
-            </AnimatePresence>
+          {/* Description (optional) */}
+          <div className="mb-4">
+            <label className={labelClass}>
+              Description{' '}
+              <span className="normal-case font-sans text-[10px] text-white/20">(optional)</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief brand description or context…"
+              disabled={analyzing}
+              rows={3}
+              className={`${inputClass} resize-none`}
+              style={inputStyle}
+            />
           </div>
 
           {/* Analyze button */}
           <AnimatePresence>
-            {selectedId && !analyzing && (
+            {canAnalyze && !analyzing && (
               <motion.button
                 key="analyze-btn"
                 initial={{ opacity: 0, y: 8 }}
@@ -632,6 +626,16 @@ export default function VoiceArchaeologyPage() {
               </motion.button>
             )}
           </AnimatePresence>
+
+          {/* Analyzing state indicator */}
+          {analyzing && (
+            <div
+              className="w-full rounded-xl px-4 py-3 font-sans text-[13px] text-white/30 border border-studio-brd text-center"
+              style={{ background: '#141210' }}
+            >
+              Analyzing…
+            </div>
+          )}
 
           {/* Recent analyses */}
           {history.length > 0 && (
@@ -669,10 +673,16 @@ export default function VoiceArchaeologyPage() {
                               {h.brandName}
                             </div>
                             <div className="font-sans text-[10px] text-white/20 mt-0.5">
-                              {new Date(h.analyzedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              {h.brandCategory} ·{' '}
+                              {new Date(h.analyzedAt).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
                             </div>
                           </div>
-                          <span className="font-mono text-[11px] text-ember-400/60">{h.brandScore}%</span>
+                          <div className="flex items-center gap-2">
+                            <MiniRing score={h.brandScore} size={34} />
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -686,12 +696,10 @@ export default function VoiceArchaeologyPage() {
         {/* ── Right: Analysis output ── */}
         <div>
           <AnimatePresence mode="wait">
-            {analyzing && selectedProfile ? (
-              <LoadingCard
-                key="loading"
-                step={loadingStep}
-                brandName={selectedProfile.name}
-              />
+            {analyzing ? (
+              <LoadingCard key="loading" step={loadingStep} brandName={brandName} />
+            ) : error ? (
+              <ErrorCard key="error" message={error} onRetry={runAnalysis} />
             ) : analysis ? (
               <AnalysisCard key={analysis.brandId + analysis.analyzedAt} analysis={analysis} />
             ) : (

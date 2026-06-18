@@ -1,3 +1,8 @@
+// Supabase is temporarily disabled — no env vars required.
+// To re-enable: uncomment the block below, remove the mock export,
+// and add VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY to your .env file.
+
+/*
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database'
 
@@ -9,3 +14,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+*/
+
+export const SUPABASE_ENABLED = false
